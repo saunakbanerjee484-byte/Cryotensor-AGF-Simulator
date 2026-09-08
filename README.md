@@ -177,7 +177,7 @@ physics is actually implemented.
 | Module | Scope | Status |
 |---|---|---|
 | 1 | Transient Stefan Phase-Change Matrix (AHCM) | ✅ Implemented |
-| 2 | SFCC Cryogenic Suction Solver — Richards' equation coupled to the Soil Freezing Characteristic Curve, ice-lens growth via Clausius–Clapeyron suction | 🔲 Contract defined (`core_physics/cryosuction.py`) |
+| 2 | SFCC Cryogenic Suction Solver — Richards' equation coupled to the Soil Freezing Characteristic Curve, ice-lens growth via Clausius–Clapeyron suction | Implemented ✅✅|
 | 3 | Volumetric Frost Heave Tensor — 9% water→ice expansion + segregation-potential ice-lens heave | 🔲 Contract defined (`core_physics/frost_heave.py`) |
 | 4 | Thermo-Elastic Restrained Stress — lateral crushing pressure (MPa) on retaining structures | 🔲 Contract defined (`core_physics/restrained_stress.py`) |
 | 5 | Thaw Consolidation Simulator — Morgenstern–Nixon void-ratio collapse, excess pore pressure, settlement | 🔲 Contract defined (`core_physics/thaw_consolidation.py`) |
