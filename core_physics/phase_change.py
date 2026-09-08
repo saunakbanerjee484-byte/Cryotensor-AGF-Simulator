@@ -35,9 +35,13 @@ Numerics:
 This module contains NO Streamlit / plotting / UI code (see ui_components/).
 """
 
+# pyright: reportMissingTypeStubs=false, reportUnknownVariableType=false
+# pyright: reportUnknownMemberType=false, reportUnknownArgumentType=false
+# pyright: reportUnknownParameterType=false
+
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 import numpy as np
 import scipy.sparse as sp
 import scipy.sparse.linalg as spla
@@ -148,18 +152,18 @@ def build_2d_laplacian(nx: int, ny: int, dx: float, dy: float) -> sp.csr_matrix:
     main_x = -2.0 * ex
     main_x[0] = -1.0
     main_x[-1] = -1.0
-    Lx1d = sp.diags([ex[:-1], main_x, ex[:-1]], offsets=[-1, 0, 1], shape=(nx, nx)) / dx ** 2
+    Lx1d = sp.diags([ex[:-1], main_x, ex[:-1]], offsets=[-1, 0, 1], shape=(nx, nx)) / dx ** 2  # type: ignore
 
     ey = np.ones(ny)
     main_y = -2.0 * ey
     main_y[0] = -1.0
     main_y[-1] = -1.0
-    Ly1d = sp.diags([ey[:-1], main_y, ey[:-1]], offsets=[-1, 0, 1], shape=(ny, ny)) / dy ** 2
+    Ly1d = sp.diags([ey[:-1], main_y, ey[:-1]], offsets=[-1, 0, 1], shape=(ny, ny)) / dy ** 2  # type: ignore
 
     Ix = sp.eye(nx)
     Iy = sp.eye(ny)
     L = sp.kron(Iy, Lx1d) + sp.kron(Ly1d, Ix)
-    return L.tocsr()
+    return L.tocsr()  # type: ignore
 
 
 def dirichlet_masks(p: ThermalParams):
@@ -205,8 +209,6 @@ def run_stefan_simulation(p: ThermalParams, record_every: int = 1):
     L = build_2d_laplacian(p.nx, p.ny, dx, dy)
     pipe_mask, outer_mask, x, y, X, Y = dirichlet_masks(p)
     boundary_mask = pipe_mask | outer_mask
-    interior_mask = ~boundary_mask
-
     T = np.full(N, p.initial_ground_temp, dtype=float)
     T[pipe_mask] = p.pipe_temp
     T[outer_mask] = p.far_field_temp
@@ -221,8 +223,6 @@ def run_stefan_simulation(p: ThermalParams, record_every: int = 1):
     cooling_rate_list = [0.0]
     frozen_frac_list = [float(np.mean(T <= p.T_freeze))]
 
-    I = sp.identity(N, format="csr")
-
     for step in range(1, n_steps + 1):
         T_old = T.copy()
         T_guess = T.copy()  # Picard seed = previous timestep solution
@@ -235,22 +235,22 @@ def run_stefan_simulation(p: ThermalParams, record_every: int = 1):
             #  fast to solve each Picard sub-iteration; c_app carries the full nonlinearity.)
 
             C_diag = sp.diags(c_app / dt)
-            A = C_diag - k_avg * L
+            mat_A = C_diag - k_avg * L
 
             b = (c_app / dt) * T_old
 
             # Enforce Dirichlet rows (vectorized row replacement, no loop over nodes)
-            A = A.tolil()
-            A[pipe_mask, :] = 0.0
-            A[pipe_mask, np.where(pipe_mask)[0]] = 1.0
-            A[outer_mask, :] = 0.0
-            A[outer_mask, np.where(outer_mask)[0]] = 1.0
-            A = A.tocsr()
+            mat_A = mat_A.tolil()
+            mat_A[pipe_mask, :] = 0.0
+            mat_A[pipe_mask, np.where(pipe_mask)[0]] = 1.0
+            mat_A[outer_mask, :] = 0.0
+            mat_A[outer_mask, np.where(outer_mask)[0]] = 1.0
+            mat_A = mat_A.tocsr()
 
             b[pipe_mask] = p.pipe_temp
             b[outer_mask] = p.far_field_temp
 
-            T_new = spla.spsolve(A, b)
+            T_new = np.asarray(spla.spsolve(mat_A, b))
             T_guess = T_new
 
         cooling_rate = np.max(np.abs(T_guess - T_old)) / dt
