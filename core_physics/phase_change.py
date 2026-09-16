@@ -231,8 +231,8 @@ def run_stefan_simulation(p: ThermalParams, record_every: int = 1) -> dict[str, 
             # (Using a scalar effective k keeps the Laplacian operator fixed-structure &
             #  fast to solve each Picard sub-iteration; c_app carries the full nonlinearity.)
 
-            C_diag: Any = sp.diags(c_app / dt)  # type: ignore
-            A_mat: Any = C_diag - k_avg * L
+            C_diag = sp.diags(c_app / dt)  # type: ignore
+            A_mat = C_diag - k_avg * L  # type: ignore
 
             b = (c_app / dt) * T_old
 
