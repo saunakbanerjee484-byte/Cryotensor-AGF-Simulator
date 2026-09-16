@@ -35,16 +35,13 @@ Numerics:
 This module contains NO Streamlit / plotting / UI code (see ui_components/).
 """
 
-# pyright: reportMissingTypeStubs=false, reportUnknownVariableType=false
-# pyright: reportUnknownMemberType=false, reportUnknownArgumentType=false
-# pyright: reportUnknownParameterType=false
-
 from __future__ import annotations
 
+from typing import Any
 from dataclasses import dataclass
 import numpy as np
-import scipy.sparse as sp
-import scipy.sparse.linalg as spla
+import scipy.sparse as sp  # type: ignore
+import scipy.sparse.linalg as spla  # type: ignore
 
 
 # ----------------------------------------------------------------------------
@@ -153,16 +150,16 @@ def build_2d_laplacian(nx: int, ny: int, dx: float, dy: float) -> sp.csr_matrix:
     main_x[0] = -1.0
     main_x[-1] = -1.0
     Lx1d = sp.diags([ex[:-1], main_x, ex[:-1]], offsets=[-1, 0, 1], shape=(nx, nx)) / dx ** 2  # type: ignore
-
+    
     ey = np.ones(ny)
     main_y = -2.0 * ey
     main_y[0] = -1.0
     main_y[-1] = -1.0
     Ly1d = sp.diags([ey[:-1], main_y, ey[:-1]], offsets=[-1, 0, 1], shape=(ny, ny)) / dy ** 2  # type: ignore
 
-    Ix = sp.eye(nx)
-    Iy = sp.eye(ny)
-    L = sp.kron(Iy, Lx1d) + sp.kron(Ly1d, Ix)
+    Ix: Any = sp.eye(nx)  # type: ignore
+    Iy: Any = sp.eye(ny)  # type: ignore
+    L: Any = sp.kron(Iy, Lx1d) + sp.kron(Ly1d, Ix)  # type: ignore
     return L.tocsr()  # type: ignore
 
 
@@ -190,7 +187,7 @@ def dirichlet_masks(p: ThermalParams):
 # ----------------------------------------------------------------------------
 # Main transient solve
 # ----------------------------------------------------------------------------
-def run_stefan_simulation(p: ThermalParams, record_every: int = 1):
+def run_stefan_simulation(p: ThermalParams, record_every: int = 1) -> dict[str, Any]:
     """
     Run the fully-implicit, Picard-linearized transient AHCM simulation.
 
@@ -208,24 +205,24 @@ def run_stefan_simulation(p: ThermalParams, record_every: int = 1):
     N = p.nx * p.ny
     L = build_2d_laplacian(p.nx, p.ny, dx, dy)
     pipe_mask, outer_mask, x, y, X, Y = dirichlet_masks(p)
-    boundary_mask = pipe_mask | outer_mask
-    T = np.full(N, p.initial_ground_temp, dtype=float)
-    T[pipe_mask] = p.pipe_temp
-    T[outer_mask] = p.far_field_temp
+
+    T_vec = np.full(N, p.initial_ground_temp, dtype=float)
+    T_vec[pipe_mask] = p.pipe_temp
+    T_vec[outer_mask] = p.far_field_temp
 
     dt = p.dt
     n_steps = p.n_steps()
     record_every = max(1, record_every)
 
     t_list = [0.0]
-    T_history = [T.reshape(p.ny, p.nx).copy()]
+    T_history = [T_vec.reshape(p.ny, p.nx).copy()]
     front_list = [0.0]
     cooling_rate_list = [0.0]
-    frozen_frac_list = [float(np.mean(T <= p.T_freeze))]
+    frozen_frac_list = [float(np.mean(T_vec <= p.T_freeze))]
 
     for step in range(1, n_steps + 1):
-        T_old = T.copy()
-        T_guess = T.copy()  # Picard seed = previous timestep solution
+        T_old = T_vec.copy()
+        T_guess = T_vec.copy()  # Picard seed = previous timestep solution
 
         for _ in range(p.picard_iters):
             c_app = apparent_heat_capacity(T_guess, p)          # [J/m3/K], shape (N,)
@@ -234,34 +231,34 @@ def run_stefan_simulation(p: ThermalParams, record_every: int = 1):
             # (Using a scalar effective k keeps the Laplacian operator fixed-structure &
             #  fast to solve each Picard sub-iteration; c_app carries the full nonlinearity.)
 
-            C_diag = sp.diags(c_app / dt)
-            mat_A = C_diag - k_avg * L
+            C_diag: Any = sp.diags(c_app / dt)  # type: ignore
+            A_mat: Any = C_diag - k_avg * L
 
             b = (c_app / dt) * T_old
 
             # Enforce Dirichlet rows (vectorized row replacement, no loop over nodes)
-            mat_A = mat_A.tolil()
-            mat_A[pipe_mask, :] = 0.0
-            mat_A[pipe_mask, np.where(pipe_mask)[0]] = 1.0
-            mat_A[outer_mask, :] = 0.0
-            mat_A[outer_mask, np.where(outer_mask)[0]] = 1.0
-            mat_A = mat_A.tocsr()
+            A_mat = A_mat.tolil()  # type: ignore
+            A_mat[pipe_mask, :] = 0.0
+            A_mat[pipe_mask, np.where(pipe_mask)[0]] = 1.0
+            A_mat[outer_mask, :] = 0.0
+            A_mat[outer_mask, np.where(outer_mask)[0]] = 1.0
+            A_mat = A_mat.tocsr()  # type: ignore
 
             b[pipe_mask] = p.pipe_temp
             b[outer_mask] = p.far_field_temp
 
-            T_new = np.asarray(spla.spsolve(mat_A, b))
+            T_new = np.asarray(spla.spsolve(A_mat, b))  # type: ignore
             T_guess = T_new
 
         cooling_rate = np.max(np.abs(T_guess - T_old)) / dt
-        T = T_guess
+        T_vec = T_guess
 
         if step % record_every == 0 or step == n_steps:
             t_list.append(step * dt)
-            T_field = T.reshape(p.ny, p.nx)
+            T_field = T_vec.reshape(p.ny, p.nx)
             T_history.append(T_field.copy())
             cooling_rate_list.append(float(cooling_rate))
-            frozen_frac_list.append(float(np.mean(T <= p.T_freeze)))
+            frozen_frac_list.append(float(np.mean(T_vec <= p.T_freeze)))
             front_list.append(_estimate_freeze_front_radius(T_field, X, Y, p))
 
     return {

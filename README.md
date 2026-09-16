@@ -79,43 +79,7 @@ band `[T_f − ΔT/2, T_f + ΔT/2]` — the standard "apparent heat capacity" or
 "equivalent heat capacity" formulation used in AGF engineering practice.
 This avoids a moving-mesh or level-set front-tracking scheme entirely,
 which is what keeps the solver cheap enough for a Core i3.
-## 4. Module 2 — SFCC Cryogenic Suction Solver
 
-**Status: fully implemented.**
-
-### Governing physics
-Couples the Soil Freezing Characteristic Curve (SFCC) to a 1D vertical Richards' equation (moisture-content / diffusive form) through the Generalized Clausius-Clapeyron relation.
-*   **Cryogenic Suction:** `psi_cryo(T) = [rho_w * L_f / (T_f,K * 1000)] * max(T_f - T, 0)`
-*   **SFCC:** van Genuchten formulation with an Air-Entry-Value (AEV) plateau.
-*   **Moisture Migration:** Richards' equation tracking unfrozen-water migration from a groundwater source toward an advancing freezing front.
-
-### Numerics
-*   **CPU-Bound Vectorization:** The spatial diffusion operator is assembled ONCE per Picard sub-iteration as a tridiagonal `scipy.sparse.diags` matrix.
-*   **No Spatial Loops:** Built from harmonic-mean nodal diffusivities via pure array slicing (`D[:-1]`, `D[1:]`) — absolutely no loop over depth nodes.
-*   **Time Integration:** Backward-Euler (fully implicit) time integration for stability near saturation. Nonlinearity is resolved with a Picard fixed-point iteration (`scipy.sparse.linalg.spsolve`).
-
-### Deterministic engineering assessment (Module 2)
-*   🔴 **Red** — CRITICAL: Sustained moisture influx velocity continuous feeding from the water table. Massive ice lens formation in progress.
-*   🟡 **Yellow** — MODERATE: Active suction gradient exists, but ice lens growth is restricted by a capillary barrier (low `k_sat`).
-*   🟢 **Green** — OPTIMAL: Closed-system freezing confirmed. Minimal moisture migration.
-
-
-## 5. Module 3 — Volumetric Frost Heave Tensor
-
-**Status: Architecture defined, dynamic UI routing implemented.**
-
-### Governing physics
-Transitions the engine into a thermo-hydro-mechanical solver by calculating the total Volumetric Frost Heave Rate (`h_dot`) as a summation of two localized strain components:
-*   **In-Situ Expansion:** `h_dot_in-situ = 0.09 * n * (dz/dt)` (9% volumetric expansion of existing pore water).
-*   **Segregation Heave (Ice Lensing):** Utilizes the Konrad & Morgenstern Segregation Potential (SP) model where water intake flux is `v_s = SP * grad(T_f)`. 
-*   **Overburden Decay:** Segregation Potential decays exponentially under structural overburden pressure (`SP = SP_0 * e^{-aP}`).
-
-### Numerics
-*   **Boolean Masking:** The active freezing fringe (e.g., `0°C` to `-0.5°C`) is isolated instantly across the 2D matrix using pure NumPy boolean masking `(T <= 0) & (T > -0.5)`.
-*   **Vectorized Tensor Assembly:** `np.gradient(T)` calculates temperature vectors across the grid in one CPU cycle, multiplying with the fringe mask to instantly generate the spatial Volumetric Strain Tensor field. Zero explicit Python `for` loops.
-
-### Deterministic engineering assessment (Module 3)
-*   Triggers deterministic threshold alerts based on structural tolerances. If the localized differential heave rate (mm/day) inside the spatial tensor exceeds the maximum allowable foundation uplift, the system flags a structural failure risk.
 ### Numerics
 
 - **Fully implicit (Backward Euler)** time integration — unconditionally
@@ -213,7 +177,7 @@ physics is actually implemented.
 | Module | Scope | Status |
 |---|---|---|
 | 1 | Transient Stefan Phase-Change Matrix (AHCM) | ✅ Implemented |
-| 2 | SFCC Cryogenic Suction Solver — Richards' equation coupled to the Soil Freezing Characteristic Curve, ice-lens growth via Clausius–Clapeyron suction | Implemented ✅✅|
+| 2 | SFCC Cryogenic Suction Solver — Richards' equation coupled to the Soil Freezing Characteristic Curve, ice-lens growth via Clausius–Clapeyron suction | 🔲 Contract defined (`core_physics/cryosuction.py`) |
 | 3 | Volumetric Frost Heave Tensor — 9% water→ice expansion + segregation-potential ice-lens heave | 🔲 Contract defined (`core_physics/frost_heave.py`) |
 | 4 | Thermo-Elastic Restrained Stress — lateral crushing pressure (MPa) on retaining structures | 🔲 Contract defined (`core_physics/restrained_stress.py`) |
 | 5 | Thaw Consolidation Simulator — Morgenstern–Nixon void-ratio collapse, excess pore pressure, settlement | 🔲 Contract defined (`core_physics/thaw_consolidation.py`) |
