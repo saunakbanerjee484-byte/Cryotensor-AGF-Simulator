@@ -10,8 +10,10 @@ this session, falls back to a clearly-labeled synthetic MOCK temperature field
 so the module remains fully explorable standalone.
 """
 
+# pyright: reportUnknownMemberType=false, reportUnknownArgumentType=false
+
 from __future__ import annotations
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 import pandas as pd
@@ -87,10 +89,12 @@ def render() -> None:
             )
 
             if has_real_field:
-                T_curr = thermal["T_history"][-1]
-                T_prev = thermal["T_history"][-2]
+                assert thermal is not None
+                T_curr = cast(np.ndarray, thermal["T_history"][-1])
+                T_prev = cast(np.ndarray, thermal["T_history"][-2])
                 dt_s = float(thermal["t"][-1] - thermal["t"][-2])
-                x, y = thermal["x"], thermal["y"]
+                x = cast(np.ndarray, thermal["x"])
+                y = cast(np.ndarray, thermal["y"])
                 data_source = "Module 1 (live)"
             else:
                 x, y, T_prev, T_curr, dt_s = generate_mock_temperature_fields()
@@ -100,7 +104,9 @@ def render() -> None:
                 sim_out: dict[str, Any] = run_frost_heave_simulation(T_curr, T_prev, dt_s, x, y, p)
             sim_out["data_source"] = data_source
             st.session_state["frost_heave_results"] = sim_out
-            st.success(f"Heave tensor computed — peak local rate {sim_out['max_heave_rate_mm_day']:.3f} mm/day.")
+            strain = cast(np.ndarray, sim_out["strain_field"])
+            state_pipeline.publish_strain_field(strain, x, y)
+            st.success(f"Heave tensor computed — peak local rate {sim_out['max_heave_rate_mm_day']:.3f} mm/day. Strain field published to the shared pipeline for Module 4.")
 
     # -------------------------------------------------------------------------------------
     # LEFT COLUMN (70%) -- LIVE SIMULATION / VISUALS

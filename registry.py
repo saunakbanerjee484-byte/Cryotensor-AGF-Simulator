@@ -1,17 +1,32 @@
+"""
+registry.py
+=============
+The CryoTensor-AGF-Simulator Module Registry -- the single source of truth for
+which modules exist, their sidebar display order, and which render() function
+each maps to.
+
+Adding a new module to the Command Center means adding exactly one tuple to
+MODULES below. app.py's sidebar generation and dispatch loop never need to
+change -- they simply unpack this list.
+
+Each entry is (display_name, render_fn_or_None, is_implemented). Modules not
+yet implemented pass `None` for render_fn; app.py falls through to
+`render_placeholder()`, which preserves the standard [7, 3] Command Center
+layout so the UI never jumps or degrades as new modules land.
+"""
+
 from __future__ import annotations
 import streamlit as st
-from typing import Callable, Any
 
-from modules import module1, module2, module3
+from modules import module1, module2, module3, module4
 
-# FIXED: Replaced "callable | None" with Callable[..., Any] | None
-MODULES: list[tuple[str, Callable[..., Any] | None, bool]] = [
+MODULES: list[tuple[str, "callable | None", bool]] = [
     ("1. Transient Stefan Phase-Change Matrix", module1.render, True),
     ("2. SFCC Cryosuction Solver", module2.render, True),
     ("3. Volumetric Frost Heave Tensor", module3.render, True),
-    ("4. Thermo-Elastic Restrained Stress", lambda: render_placeholder("4. Thermo-Elastic Restrained Stress"), True),
-    ("5. Thaw Consolidation Simulator", lambda: render_placeholder("5. Thaw Consolidation Simulator"), True),
-    ("6. Command Center Master Export", lambda: render_placeholder("6. Command Center Master Export"), True),
+    ("4. Thermo-Elastic Restrained Stress", module4.render, True),
+    ("5. Thaw Consolidation Simulator", None, False),
+    ("6. Command Center Master Export", None, False),
 ]
 
 

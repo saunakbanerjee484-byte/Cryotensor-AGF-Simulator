@@ -30,7 +30,7 @@ CryoTensor-AGF-Simulator/
 ├── core_physics/              # CPU-bound, pure vectorized math — NO UI logic
 │   ├── phase_change.py        # Module 1: Stefan formulation, Apparent Heat Capacity Method  [IMPLEMENTED]
 │   ├── cryosuction.py         # Module 2: SFCC, moisture migration, ice lens growth           [stub / contract]
-│   ├── frost_heave.py         # Module 3: 9% volumetric expansion tensor                      [stub / contract]
+│   ├── frost_heave.py         # Module 3: 9% volumetric expansion tensor                      [IMPLEMENTED]
 │   ├── restrained_stress.py   # Module 4: Thermo-elastic structural stress (MPa)               [stub / contract]
 │   └── thaw_consolidation.py  # Module 5: Melt-down excess pore pressure & settlement           [stub / contract]
 ├── ui_components/             # Streamlit layouts & UX engine — NO physics
@@ -178,7 +178,7 @@ physics is actually implemented.
 |---|---|---|
 | 1 | Transient Stefan Phase-Change Matrix (AHCM) | ✅ Implemented |
 | 2 | SFCC Cryogenic Suction Solver — Richards' equation coupled to the Soil Freezing Characteristic Curve, ice-lens growth via Clausius–Clapeyron suction | 🔲 Contract defined (`core_physics/cryosuction.py`) |
-| 3 | Volumetric Frost Heave Tensor — 9% water→ice expansion + segregation-potential ice-lens heave | 🔲 Contract defined (`core_physics/frost_heave.py`) |
+| 3 | Volumetric Frost Heave Tensor — 9% water→ice expansion + segregation-potential ice-lens heave | ✅ Implemented |
 | 4 | Thermo-Elastic Restrained Stress — lateral crushing pressure (MPa) on retaining structures | 🔲 Contract defined (`core_physics/restrained_stress.py`) |
 | 5 | Thaw Consolidation Simulator — Morgenstern–Nixon void-ratio collapse, excess pore pressure, settlement | 🔲 Contract defined (`core_physics/thaw_consolidation.py`) |
 | 6 | *(reserved — TBD scope)* | 🔲 Not started |

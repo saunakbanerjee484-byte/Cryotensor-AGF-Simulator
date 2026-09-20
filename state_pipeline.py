@@ -57,6 +57,7 @@ import streamlit as st
 
 _THERMAL_KEY = "cryotensor_shared_thermal"
 _SUCTION_KEY = "cryotensor_shared_suction"
+_STRAIN_KEY = "cryotensor_shared_strain"
 
 
 def init_shared_state() -> None:
@@ -65,6 +66,8 @@ def init_shared_state() -> None:
         st.session_state[_THERMAL_KEY] = None
     if _SUCTION_KEY not in st.session_state:
         st.session_state[_SUCTION_KEY] = None
+    if _STRAIN_KEY not in st.session_state:
+        st.session_state[_STRAIN_KEY] = None
 
 
 # =====================================================================================
@@ -127,3 +130,37 @@ def get_suction_field() -> Optional[dict[str, Any]]:
 
 def has_suction_field() -> bool:
     return get_suction_field() is not None
+
+
+# =====================================================================================
+# Module 3 -> downstream: volumetric strain field (consumed by Module 4)
+# =====================================================================================
+def publish_strain_field(strain_field: np.ndarray, x: np.ndarray, y: np.ndarray) -> None:
+    """
+    Called by modules/module3.py immediately after a successful heave-tensor solve.
+    Stores a REFERENCE to Module 3's own `strain_field` array (see module docstring,
+    point 1) -- this call does not copy any grid data.
+    """
+    dx = float(x[1] - x[0])
+    dy = float(y[1] - y[0])
+    st.session_state[_STRAIN_KEY] = {
+        "strain_field": strain_field,
+        "x": x,
+        "y": y,
+        "dx": dx,
+        "dy": dy,
+        "source_module": "module3",
+    }
+
+
+def get_strain_field() -> Optional[dict[str, Any]]:
+    """
+    Returns the shared volumetric-strain-field dict (see `publish_strain_field`), or
+    `None` if Module 3 has not yet produced one in this session. Consumers must not
+    mutate the array they receive (see module docstring, point 2).
+    """
+    return st.session_state.get(_STRAIN_KEY)
+
+
+def has_strain_field() -> bool:
+    return get_strain_field() is not None

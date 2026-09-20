@@ -57,6 +57,7 @@ Numerics (CPU-bound, no GPU / no ML / no spatial Python loops)
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
 import numpy as np
 
@@ -155,7 +156,7 @@ def compute_surface_uplift_profile(h_dot_field: np.ndarray, dy: float) -> np.nda
 # Main solve (single-frame, driven by a T(t) pair handed off from Module 1)
 # =====================================================================================
 def run_frost_heave_simulation(T_curr: np.ndarray, T_prev: np.ndarray, dt_s: float,
-                                x: np.ndarray, y: np.ndarray, p: HeaveParams) -> dict:
+                                x: np.ndarray, y: np.ndarray, p: HeaveParams) -> dict[str, Any]:
     """
     Compute the full Module 3 field set for one recorded interval [T_prev -> T_curr].
 
