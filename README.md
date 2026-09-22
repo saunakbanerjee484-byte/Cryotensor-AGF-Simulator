@@ -24,7 +24,7 @@ A standalone, deterministic, CPU-bound engineering simulator for Artificial Grou
 CryoTensor-AGF-Simulator/
 ├── app.py                     # Streamlit Entry Point (The Command Center UI)
 ├── core_physics/              # CPU-bound, pure vectorized math — NO UI logic
-│   ├── types.py               # Data structures & typed dicts (SFCCParams, ConsolidationParams, etc.)
+│   ├── types.py               # Data structures & typed dicts (HeaveParams, ConsolidationParams, etc.)
 │   ├── phase_change.py        # Module 1: Stefan formulation, Apparent Heat Capacity Method  [IMPLEMENTED]
 │   ├── cryosuction.py         # Module 2: SFCC, moisture migration, ice lens growth           [IMPLEMENTED]
 │   ├── frost_heave.py         # Module 3: 9% volumetric expansion tensor                      [IMPLEMENTED]
@@ -36,6 +36,7 @@ CryoTensor-AGF-Simulator/
 │   └── dual_visualizer.py     # Simultaneous Matplotlib line + Seaborn heatmap + DataFrame
 └── tests/
     ├── test_thermal.py        # Regression tests for Module 1 physics
+    ├── test_frost_heave.py    # Regression tests for Module 3 physics
     └── test_mechanical.py     # Contract tests for Modules 2–5 (params + NotImplementedError guards)
 
 ```
@@ -75,33 +76,68 @@ The phase-change (Stefan) condition is captured **without explicit front trackin
 Module 2 models the highly non-linear hydrogeological phenomena occurring at the active freeze front, driving moisture migration from the unfrozen groundwater table into the frozen zone.
 
 * **Soil Freezing Characteristic Curve (SFCC):** Translates thermal gradients into volumetric unfrozen water content ($\theta_u$). Utilizes the **van Genuchten** empirical framework ($n$, $\alpha$, $\theta_r$, $\theta_s$, $AEV$) alongside Clausius-Clapeyron cryogenic suction mechanics to define the matrix boundary state.
-
-
 * **Cryogenic Suction Generation:** As temperature drops below 0°C, the drastic reduction in unfrozen water creates immense matric suction ($\psi$), reaching values upwards of 14,000 kPa in the frozen zone. This pressure differential initiates capillary rise from the water table.
-
-
 * **Richards' Equation:** The transient unsaturated moisture flow is governed by the 1D Richards' equation, mapping the spatio-temporal evolution of the matric suction field.
-
-
 
 ### Numerics & Computational Logic
 
 * **Vectorized Richards' Engine:** The solver executes a 1D implicit Backward-Euler time integration over the spatial grid.
 * **Picard-Linearized Updates:** The highly stiff, non-linear dependencies of hydraulic conductivity $K(\psi)$ and specific moisture capacity $C(\psi)$ on the primary variable $\psi$ are resolved using fixed-point Picard iterations within each timestep, without reverting to Python `for` loops across the depth tensor.
-* **State Pipeline Handoff:** The successfully resolved suction history (`psi_history`), moisture history (`theta_history`), and spatio-temporal coordinates are published directly into the `state_pipeline` for consumption by Module 3 (Frost Heave) and Module 5 (Thaw Consolidation).
+* **State Pipeline Handoff:** The successfully resolved suction history (`psi_history`), moisture history (`theta_history`), and spatio-temporal coordinates are published directly into the `state_pipeline` for consumption by downstream modules.
+
+---
+
+## 5. Module 3 — Volumetric Frost Heave Tensor
+
+**Status: fully implemented.**
+
+### Governing Physics & Geotechnical Mechanics
+
+Module 3 converts a 2D temperature field into a spatially resolved volumetric heave-rate field and volumetric strain tensor field, combining two classical frost-heave mechanisms:
+
+* **In-situ expansion (primary heave):** Represents the 9% volumetric expansion of pore water converting to ice. This rate is scaled by porosity and the local phase-change (isotherm) velocity ($h_{insitu\_dot} = 0.09 \cdot n \cdot (dz/dt)$). The isotherm velocity $dz/dt$ is recovered dynamically from the temperature field via $\vert{}dT/dt\vert{} / \vert{}\nabla T\vert{}$ without explicit front-tracking.
+
+
+* **Segregation heave (secondary heave / ice lensing):** Governed by the Konrad & Morgenstern Segregation Potential (SP) model. The water-intake velocity feeding an ice lens is proportional to the temperature gradient in the frozen fringe ($v_s = SP \cdot \nabla T$). The segregation potential itself decays exponentially under overburden effective pressure ($SP = SP_0 \cdot \exp(-a \cdot P)$).
+
+
+* **Active Freezing Fringe Limits:** Both mechanisms are physically restricted to the active freezing fringe—a narrow sub-zero band (e.g., 0°C to -0.5°C) where unfrozen pore water still exists and ice segregation is physically active.
+
+
+* **Tensor Assembly:** The volumetric strain increment field is derived as the local heave rate normalized by the vertical cell size ($\Delta\epsilon_v = \dot{h} \cdot \Delta t / \Delta y$), while the ground-surface uplift profile represents the full depth integral of the heave-rate field.
+
+
+
+### Numerics & Computational Logic
+
+* **Zero-Loop Masking:** The active freezing fringe is isolated across the entire 2D matrix using pure NumPy boolean masking (`(T <= T_upper) & (T > T_lower)`).
+
+
+* **Vectorized Fields:** Spatial temperature gradients are extracted using `np.gradient()` over the full 2D field. The isotherm velocity field, segregation flux, in-situ expansion, and strain field are executed as single vectorized expressions without any spatial Python `for` loops.
+
+
+* **Tensor Reduction:** The depth-integral for the ground-surface uplift profile is computed via a single array reduction (`np.sum(h_dot_field, axis=0) * dy`).
+
+
+* **Fallback Generator:** The module dynamically consumes the 2D temperature field from Module 1 via the shared session-state pipeline. If Module 1 has not been executed, a standalone synthetic mock temperature field generator provides an exponential radial decay matrix, allowing Module 3 to remain fully explorable and testable in isolation.
+
+
 
 ### Visualization Outputs
 
-* **Dual Geometry Tracking:** Outputs a simultaneous view of the SFCC ($\theta_u$ vs. Temperature) and the localized Matric Suction Profile ($\psi$ vs. Depth) for individual timesteps.
+* **1D Ground-Surface Uplift Rate Profile:** Renders a Matplotlib line chart of the depth-integrated uplift rate mapping horizontal position ($x$) against continuous limits, featuring a dashed structural tolerance threshold line (e.g., 2.00 mm/day).
 
 
-* **Tensor Heatmap:** A high-contrast Seaborn heatmap visualizes the complete Spatio-Temporal Matric Suction Field, clearly delineating the extreme suction boundary at the propagating freeze front against the hydrostatic conditions below.
+* **Volumetric Strain Tensor Field, $\Delta\epsilon_v(x,y)$:** Generates a Seaborn heatmap visualizing the spatial contour boundary of the volumetric strain increment.
+
+
+* **Deterministic Alerts:** Implements a deterministic engineering assessment that triggers a Red alert if the peak local heave rate meets or exceeds the allowable structural tolerance, halting operations to prevent differential heave damage.
 
 
 
 ---
 
-## 5. Module 5 — Thaw Consolidation Simulator
+## 6. Module 5 — Thaw Consolidation Simulator
 
 **Status: fully implemented.**
 
@@ -124,7 +160,7 @@ To satisfy the zero-spatial-loop requirement on standard CPUs, this module opera
 
 ---
 
-## 6. UI/UX — The "Command Center" Paradigm
+## 7. UI/UX — The "Command Center" Paradigm
 
 * **[7, 3] single-screen column split.** Left 70% = Live Matrix (visualizations). Right 30% = Control Panel (inputs), organized as Sub-module tabs so all workflows run seamlessly on one screen.
 * **No sliders.** Every engineering parameter is an exact `st.number_input` for professional numerical precision.
@@ -137,21 +173,19 @@ To satisfy the zero-spatial-loop requirement on standard CPUs, this module opera
 * **"No Black Box" marquee** — a scrolling HTML/CSS banner printing the exact differential equations currently driving the backend.
 * **Deterministic Red/Yellow/Green status boxes** computed by pure threshold logic.
 
-
-
 ---
 
-## 7. Architecture Log: Resolving Pylance & Typing Complexity
+## 8. Architecture Log: Resolving Pylance & Typing Complexity
 
 Building a mathematically dense system required neutralizing widespread Pylance diagnostics and unknown type resolution errors that emerged when bridging Matplotlib components, Streamlit UI states, and generic Python dictionaries.
 
-* **Strict Parameter Schemas:** Replaced generic dynamic structures with dedicated `ConsolidationParams`, `DynamicConsolidationParams`, and `SFCCParams` dataclasses/TypedDicts grouped into `core_physics/types.py` to prevent cyclic dependencies.
-* **Graphics Typing Hardening:** Injected explicit matplotlib structural imports (`Figure`, `Axes`, `Line2D`, `Text`, `Legend`) across the visualization pipeline (`module2.py`, `module4.py`, `module5.py`), ensuring the frontend engine strictly understands the layout outputs.
+* **Strict Parameter Schemas:** Replaced generic dynamic structures with dedicated `ConsolidationParams`, `DynamicConsolidationParams`, `SFCCParams`, and `HeaveParams` dataclasses/TypedDicts grouped into `core_physics/types.py` to prevent cyclic dependencies.
+* **Graphics Typing Hardening:** Injected explicit matplotlib structural imports (`Figure`, `Axes`, `Line2D`, `Text`, `Legend`) across the visualization pipeline, ensuring the frontend engine strictly understands the layout outputs.
 * **Registry Type Assurance:** Upgraded the application registry (`registry.py`) utilizing explicit tuple routing (`ModuleInfo = Tuple[str, Optional[str], bool]`). All generic `dict` outputs from the simulation solvers were upgraded to `dict[str, Any]` to eliminate ambiguity in the visualization routing.
 
 ---
 
-## 8. Running the app
+## 9. Running the app
 
 ```bash
 pip install -r requirements.txt
@@ -159,7 +193,7 @@ streamlit run app.py
 
 ```
 
-## 9. Running the tests
+## 10. Running the tests
 
 ```bash
 pip install -r requirements.txt pytest
@@ -167,13 +201,17 @@ pytest tests/ -v
 
 ```
 
-`tests/test_thermal.py` is a fast regression suite covering the liquid-fraction smoothing function, apparent heat capacity, conductivity mixing, Laplacian assembly/symmetry, and an end-to-end small-grid transient run.
+All test suites follow a strict architectural pattern: small grid domains, fast execution, and deterministic assertions.
 
-`tests/test_mechanical.py` locks in the parameter contracts (default values, physical bounds) for all subsequent modules and asserts each stub fails loudly (`NotImplementedError`) rather than returning fabricated numbers.
+* `tests/test_thermal.py`: covers the liquid-fraction smoothing function, apparent heat capacity, and conductivity mixing.
+* `tests/test_frost_heave.py`: asserts that volumetric strain fields scale linearly with time arrays, segregation potential decays exponentially under overburden limits, and surface uplift arrays maintain absolute non-negativity across the simulated bounds.
+
+
+* `tests/test_mechanical.py`: locks in the parameter contracts for all subsequent modules and asserts each stub fails loudly (`NotImplementedError`) rather than returning fabricated numbers.
 
 ---
 
-## 10. Roadmap (Modules 1–6)
+## 11. Roadmap (Modules 1–6)
 
 | Module | Scope | Status |
 | --- | --- | --- |
