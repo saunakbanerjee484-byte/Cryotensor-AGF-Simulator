@@ -1,3 +1,4 @@
+# pyright: reportArgumentType=false, reportCallIssue=false, reportReturnType=false, reportUnknownMemberType=false, reportUnknownVariableType=false
 """
 core_physics/cryosuction.py
 =============================

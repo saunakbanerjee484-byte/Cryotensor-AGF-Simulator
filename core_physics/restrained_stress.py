@@ -68,10 +68,12 @@ Numerics (CPU-bound, no GPU / no ML / no spatial Python loops)
   every iteration inside it is itself fully vectorized over the grid.
 """
 
+# pyright: reportMissingTypeStubs=false, reportUnknownMemberType=false, reportUnknownVariableType=false, reportUnknownArgumentType=false, reportIndexIssue=false, reportArgumentType=false, reportReturnType=false, reportUnknownParameterType=false
 from __future__ import annotations
 
 import html as _html
 from dataclasses import dataclass
+from typing import Any
 
 import numpy as np
 import scipy.sparse as sp
@@ -212,7 +214,7 @@ def von_mises_equivalent_stress(sigma_xx: np.ndarray, sigma_yy: np.ndarray, tau_
     return np.sqrt(3.0 * np.clip(J2, 0.0, None))
 
 
-def creep_rate_coefficient_field(T_matrix: np.ndarray | None, shape: tuple) -> np.ndarray:
+def creep_rate_coefficient_field(T_matrix: np.ndarray | None, shape: tuple[int, ...]) -> np.ndarray:
     """
     A(T) = A0 * exp[-k_T * max(T_f - T, 0)] -- colder ice creeps slower (Ladanyi-type
     temperature coupling). Falls back to the isothermal A0 field if no temperature
@@ -225,7 +227,7 @@ def creep_rate_coefficient_field(T_matrix: np.ndarray | None, shape: tuple) -> n
 
 
 def run_creep_time_march(eps_v_field: np.ndarray, x: np.ndarray, y: np.ndarray, p: StressParams,
-                          T_matrix: np.ndarray | None = None, wall_x: float | None = None):
+                          T_matrix: np.ndarray | None = None, wall_x: float | None = None) -> dict[str, Any]:
     """
     4B.2 + 4B.3 coupled outer time-march: at each sub-step, (a) recompute the
     unified damage field from the CURRENT mechanical + thermal-erosion state,
@@ -303,7 +305,7 @@ def build_sparse_dx_operator(n: int, dx: float) -> sp.csr_matrix:
 
 
 def advective_thmc_diagnostics(T_matrix: np.ndarray, x: np.ndarray, y: np.ndarray, p: StressParams,
-                                suction_context: dict | None = None):
+                                suction_context: dict[str, Any] | None = None) -> dict[str, Any]:
     """
     Vectorized advective/solute diagnostic fields. Uses a single sparse first-
     derivative operator applied once to the whole 2D field (T_matrix @ Dx.T) --
@@ -358,8 +360,8 @@ def advective_thmc_diagnostics(T_matrix: np.ndarray, x: np.ndarray, y: np.ndarra
 # =====================================================================================
 def run_restrained_stress_simulation(eps_v_field: np.ndarray, x: np.ndarray, y: np.ndarray,
                                       p: StressParams, T_matrix: np.ndarray | None = None,
-                                      suction_context: dict | None = None,
-                                      wall_x: float | None = None) -> dict:
+                                      suction_context: dict[str, Any] | None = None,
+                                      wall_x: float | None = None) -> dict[str, Any]:
     """
     Full Module 4B THMC solve from one Module-3 volumetric-strain frame:
         4B.3 (thermal damage contribution, if T_matrix given)
@@ -413,7 +415,7 @@ def run_restrained_stress_simulation(eps_v_field: np.ndarray, x: np.ndarray, y: 
 # =====================================================================================
 def generate_mock_strain_field(nx: int = 61, ny: int = 61, Lx: float = 3.0, Ly: float = 3.0,
                                 pipe_cx: float = 1.5, pipe_cy: float = 1.5,
-                                peak_strain: float = 5.0e-4):
+                                peak_strain: float = 5.0e-4) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Synthetic ring-shaped volumetric strain field around a mock freeze pipe."""
     x = np.linspace(0.0, Lx, nx)
     y = np.linspace(0.0, Ly, ny)
@@ -436,7 +438,7 @@ def generate_mock_temperature_field(x: np.ndarray, y: np.ndarray, pipe_cx: float
 # Deterministic engineering assessment (100% classical-physics thresholds, no ML)
 # =====================================================================================
 def evaluate_module4_status(max_lateral_pressure_mpa: float, yield_mpa: float, max_damage: float,
-                             creep_active_fraction: float, seepage_erosion_index: float):
+                             creep_active_fraction: float, seepage_erosion_index: float) -> tuple[str, str]:
     """
     RED   : lateral pressure exceeds wall capacity OR cryogenic damage D > 0.8.
     YELLOW: visco-plastic creep is active and/or advective seepage is measurably

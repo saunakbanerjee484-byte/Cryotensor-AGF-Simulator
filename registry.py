@@ -18,14 +18,16 @@ layout so the UI never jumps or degrades as new modules land.
 from __future__ import annotations
 import streamlit as st
 
-from modules import module1, module2, module3, module4
+from typing import Callable
 
-MODULES: list[tuple[str, "callable | None", bool]] = [
+from modules import module1, module2, module3, module4, module5
+
+MODULES: list[tuple[str, Callable[[], None] | None, bool]] = [
     ("1. Transient Stefan Phase-Change Matrix", module1.render, True),
     ("2. SFCC Cryosuction Solver", module2.render, True),
     ("3. Volumetric Frost Heave Tensor", module3.render, True),
     ("4. Thermo-Elastic Restrained Stress", module4.render, True),
-    ("5. Thaw Consolidation Simulator", None, False),
+    ("5. Thaw Consolidation Simulator", module5.render, True),
     ("6. Command Center Master Export", None, False),
 ]
 
