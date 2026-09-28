@@ -470,8 +470,12 @@ Each module in three lenses: plain-English, CS/software view, and academic rigor
 > **⚠️ Challenge:** "In-memory session state is volatile. If the user refreshes the browser or the app sleeps, all simulation data is wiped. Why not save to a database for persistence?"
 >
 <<<<<<< HEAD
+<<<<<<< HEAD
 > **🛡️ Defense:** This is a CPU-bound engineering workstation, not a distributed social media app. Storing 100,000-element floating-point matrices into a relational database at every timestep would introduce massive I/O bottlenecks. Volatility is an acceptable trade-off for zero-latency data visualization.
 
 =======
 > **🛡️ Defense:** This is a CPU-bound engineering workstation, not a distributed social media app. Storing 100,000-element floating-point matrices into a relational database at every timestep would introduce massive I/O bottlenecks. Volatility is an acceptable trade-off for zero-latency data visualization.
 >>>>>>> a13776d (Updated README with ELI5 and Academic Rigor sections)
+=======
+> **🛡️ Defense:** This is a CPU-bound engineering workstation, not a distributed social media app. Storing 100,000-element floating-point matrices into a relational database at every timestep would introduce massive I/O bottlenecks. Volatility is an acceptable trade-off for zero-latency data visualization.
+>>>>>>> a13776d0bfe870b20d18dac172a0af3152b515d1
