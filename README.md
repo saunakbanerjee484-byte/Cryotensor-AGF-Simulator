@@ -214,7 +214,13 @@ All test suites follow a strict architectural pattern: small grid domains, fast 
 | --- | --- | --- |
 | 1 | Transient Stefan Phase-Change Matrix (AHCM) | ✅ Implemented |
 | 2 | SFCC Cryogenic Suction Solver | ✅ Implemented |
+| 3 | Volumetric Frost Heave Tensor | ✅ Implemented |
 
+| **4** | **Thermo-Elastic Restrained Stress & THMC Degradation** | **✅ Implemented** |
+
+| 5 | Thaw Consolidation Simulator | ✅ Implemented |
+
+| 6 | *(reserved — TBD scope)* | 🔲 Not started |
 
 ## Contents
 
