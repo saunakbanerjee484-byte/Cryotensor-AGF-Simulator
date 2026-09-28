@@ -215,11 +215,8 @@ All test suites follow a strict architectural pattern: small grid domains, fast 
 | 1 | Transient Stefan Phase-Change Matrix (AHCM) | ✅ Implemented |
 | 2 | SFCC Cryogenic Suction Solver | ✅ Implemented |
 | 3 | Volumetric Frost Heave Tensor | ✅ Implemented |
-
 | **4** | **Thermo-Elastic Restrained Stress & THMC Degradation** | **✅ Implemented** |
-
 | 5 | Thaw Consolidation Simulator | ✅ Implemented |
-
 | 6 | *(reserved — TBD scope)* | 🔲 Not started |
 
 ## Contents
@@ -473,7 +470,4 @@ Each module in three lenses: plain-English, CS/software view, and academic rigor
 > **⚠️ Challenge:** "In-memory session state is volatile. If the user refreshes the browser or the app sleeps, all simulation data is wiped. Why not save to a database for persistence?"
 >
 > **🛡️ Defense:** This is a CPU-bound engineering workstation, not a distributed social media app. Storing 100,000-element floating-point matrices into a relational database at every timestep would introduce massive I/O bottlenecks. Volatility is an acceptable trade-off for zero-latency data visualization.
-| 3 | Volumetric Frost Heave Tensor | ✅ Implemented |
-| **4** | **Thermo-Elastic Restrained Stress & THMC Degradation** | **✅ Implemented** |
-| 5 | Thaw Consolidation Simulator | ✅ Implemented |
-| 6 | *(reserved — TBD scope)* | 🔲 Not started |
+
