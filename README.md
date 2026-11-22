@@ -1,4 +1,8 @@
-# CryoTensor-AGF-Simulator
+<div align="center">
+
+# 🧊 CryoTensor-AGF-Simulator
+
+### Artificial Ground Freezing & Thermo-Hydro-Mechanical Engine
 
 [![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
@@ -6,8 +10,18 @@
 [![Verification](https://img.shields.io/badge/verification-nominal%20%2B%20stress%20suite-blue)](verification_suite.py)
 [![Numerics](https://img.shields.io/badge/Numerics-NumPy%20%7C%20SciPy-013243?logo=numpy&logoColor=white)](requirements.txt)
 [![UI](https://img.shields.io/badge/UI-Streamlit-FF4B4B?logo=streamlit&logoColor=white)](app.py)
+[![Deterministic](https://img.shields.io/badge/Physics-Deterministic%20%7C%20No%20ML-6A1B9A)](#1-design-philosophy)
+[![CPU Bound](https://img.shields.io/badge/Runtime-CPU--Bound%20%7C%20Core%20i3%20Ready-0A7E8C)](#1-design-philosophy)
+
+<br/>
 
 > **A deterministic, CPU-bound thermo-hydro-mechanical simulator for Artificial Ground Freezing (AGF)** — from transient Stefan phase change to thaw consolidation, with auditable physics, reproducible verification, and publication-grade engineering traceability.
+
+<br/>
+
+`Stefan Phase Change` · `Cryosuction / Richards` · `Frost Heave Tensor` · `THMC Restrained Stress` · `Thaw Consolidation`
+
+</div>
 
 ---
 
@@ -235,14 +249,43 @@ All test suites follow a strict architectural pattern: small grid domains, fast 
 
 ## Contents
 
-- [How the Physics Actually Works (ELI5 Edition)](#how-the-physics-actually-works-the-eli5-edition)
-- [FAQ: The Mathematics & Physics Demystified](#-faq-the-mathematics--physics-demystified)
-- [For Tech Enthusiasts: Module-by-Module View](#for-tech-enthusiasts)
-- [FAQ: The Software Engineering & Architecture](#-faq-the-software-engineering--architecture)
+<table>
+<tr>
+<td width="50%" valign="top">
+
+### Core Engineering
+- [1. Design Philosophy](#1-design-philosophy)
+- [2. Architecture](#2-architecture)
+- [3–7. Physics Modules](#3-module-1--transient-stefan-phase-change-matrix)
+- [8. Architecture Log](#8-architecture-log-resolving-pylance--typing-complexity)
+- [9. Running the app](#9-running-the-app)
+- [10. Running the tests](#10-running-the-tests)
+- [11. Roadmap](#11-roadmap-modules-16)
+
+</td>
+<td width="50%" valign="top">
+
+### Deep Dives & Assurance
+- [How the Physics Actually Works (ELI5)](#how-the-physics-actually-works-the-eli5-edition)
+- [FAQ: Mathematics & Physics Demystified](#-faq-the-mathematics--physics-demystified)
+- [For Tech Enthusiasts](#for-tech-enthusiasts)
+- [FAQ: Software Engineering & Architecture](#-faq-the-software-engineering--architecture)
+- [Verification, Test Conditions & Failure Envelope](#verification-test-conditions--failure-envelope)
+- [Security & Reliability Notes](#security--reliability-notes)
+
+</td>
+</tr>
+</table>
 
 ---
 
-# How the Physics Actually Works (The ELI5 Edition)
+<div align="center">
+
+# 🧊 How the Physics Actually Works (The ELI5 Edition)
+
+*From liquid nitrogen to thaw settlement — the full AGF lifecycle, explained plainly.*
+
+</div>
 
 If you are wondering, *"What is Artificial Ground Freezing (AGF) and what does this math actually do?"* — read this.
 
@@ -299,7 +342,13 @@ Here is how the 5 modules work in plain English:
 
 ---
 
+<div align="center">
+
 # 🧠 FAQ: The Mathematics & Physics Demystified
+
+*ELI5 · Theoretical Rigor · Challenge & Defense*
+
+</div>
 
 Each entry has an ELI5 explanation, the theoretical rigor, and a prepared defense against the obvious challenge.
 
@@ -405,7 +454,13 @@ Each entry has an ELI5 explanation, the theoretical rigor, and a prepared defens
 
 ---
 
-# For Tech Enthusiasts
+<div align="center">
+
+# 💻 For Tech Enthusiasts
+
+*Each module through three lenses: plain-English, CS/software view, and academic rigor.*
+
+</div>
 
 Each module in three lenses: plain-English, CS/software view, and academic rigor.
 
@@ -441,7 +496,13 @@ Each module in three lenses: plain-English, CS/software view, and academic rigor
 
 ---
 
-# 💻 FAQ: The Software Engineering & Architecture
+<div align="center">
+
+# 🏗️ FAQ: The Software Engineering & Architecture
+
+*For CS students, code reviewers, and tech enthusiasts.*
+
+</div>
 
 *(For CS students, code reviewers, and tech enthusiasts)*
 
@@ -491,7 +552,7 @@ Each module in three lenses: plain-English, CS/software view, and academic rigor
 
 ---
 
-## Verification, Test Conditions & Failure Envelope
+## ✅ Verification, Test Conditions & Failure Envelope
 
 ### Test Environment & Run Conditions
 
@@ -577,7 +638,7 @@ The following are **validated guardrail failures** (intentional, controlled) or 
 
 ---
 
-## Security & Reliability Notes
+## 🔒 Security & Reliability Notes
 
 - No hardcoded secrets, credentials, or API keys were identified in repository source files during audit.
 - No use of `eval`, `exec`, unsafe deserialization, or shell-command injection patterns was identified in core Python modules.
