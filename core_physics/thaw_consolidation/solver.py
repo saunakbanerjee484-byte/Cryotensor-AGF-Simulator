@@ -48,6 +48,10 @@ def build_sparse_diffusion_operator(cv_mid: np.ndarray, dz: float, n: int) -> sp
     the staggered-grid midpoint cv values via `scipy.sparse.diags`. Pure
     vectorized array construction -- no loop over depth nodes.
     """
+    if dz <= 0:
+        raise ValueError("dz must be > 0.")
+    if n < 2:
+        raise ValueError("n must be >= 2.")
     a = cv_mid / dz ** 2                    # length n-1
     main = np.zeros(n)
     main[:-1] -= a
@@ -79,11 +83,19 @@ def run_thaw_consolidation_simulation(T_history_column: np.ndarray, t_module1: n
     (vectorized settlement integral).
     """
     n = int(dyn.n_nodes)
+    if n < 2:
+        raise ValueError("n_nodes must be >= 2.")
     L = dyn.domain_depth_m
+    if L <= 0:
+        raise ValueError("domain_depth_m must be > 0.")
     z = np.linspace(0.0, L, n)
     dz = L / (n - 1)
 
     dt = dyn.dt_hours * 3600.0
+    if dt <= 0:
+        raise ValueError("dt_hours must be > 0.")
+    if dyn.total_days < 0:
+        raise ValueError("total_days must be >= 0.")
     n_steps = max(1, int(round(dyn.total_days * 86400.0 / dt)))
     record_every = max(1, int(dyn.record_every))
 

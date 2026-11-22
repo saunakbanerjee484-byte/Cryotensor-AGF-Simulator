@@ -78,6 +78,18 @@ class SFCCParams:
     theta_s: float = 0.42             # [-]    saturated water content (porosity)
     k_sat: float = 5.0e-8             # [m/s]  saturated hydraulic conductivity
 
+    def __post_init__(self) -> None:
+        if self.vg_n <= 1.0:
+            raise ValueError("vg_n must be > 1.0.")
+        if self.vg_alpha <= 0.0:
+            raise ValueError("vg_alpha must be > 0.")
+        if self.theta_r < 0.0 or self.theta_s <= 0.0 or self.theta_r >= self.theta_s:
+            raise ValueError("Require 0 <= theta_r < theta_s.")
+        if self.k_sat <= 0.0:
+            raise ValueError("k_sat must be > 0 m/s.")
+        if self.air_entry_kpa < 0.0:
+            raise ValueError("air_entry_kpa must be >= 0.")
+
     @property
     def m(self) -> float:
         return 1.0 - 1.0 / self.vg_n
@@ -227,11 +239,19 @@ def run_cryosuction_simulation(sfcc: SFCCParams, bnd: BoundaryParams, solver: So
         params                       : dict of the three parameter dataclasses used
     """
     N = int(solver.n_nodes)
+    if N < 2:
+        raise ValueError("n_nodes must be >= 2.")
     L_domain = bnd.distance_to_water_table_m
+    if L_domain <= 0:
+        raise ValueError("distance_to_water_table_m must be > 0.")
     z = np.linspace(0.0, L_domain, N)
     dz = L_domain / (N - 1)
 
     dt = solver.dt_hours * 3600.0
+    if dt <= 0:
+        raise ValueError("dt_hours must be > 0.")
+    if solver.total_days < 0:
+        raise ValueError("total_days must be >= 0.")
     n_steps = max(1, int(round(solver.total_days * 86400.0 / dt)))
     record_every = max(1, int(solver.record_every))
 

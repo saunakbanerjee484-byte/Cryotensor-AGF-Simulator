@@ -93,6 +93,8 @@ def identify_freezing_fringe(T_field: np.ndarray, T_upper: float = 0.0, T_lower:
 
 def temperature_gradient_field(T_field: np.ndarray, dx: float, dy: float):
     """grad(T) magnitude and components [degC/m], vectorized via np.gradient."""
+    if dx <= 0 or dy <= 0:
+        raise ValueError("dx and dy must be > 0 meters.")
     dTdy, dTdx = np.gradient(T_field, dy, dx)
     grad_mag = np.sqrt(dTdx ** 2 + dTdy ** 2)
     return grad_mag, dTdx, dTdy
@@ -107,6 +109,10 @@ def phase_front_velocity_field(T_curr: np.ndarray, T_prev: np.ndarray, dt_s: flo
         dz/dt = |dT/dt| / |grad(T)|
     Vectorized over the whole grid.
     """
+    if dt_s <= 0:
+        raise ValueError("dt_s must be > 0 seconds.")
+    if dx <= 0 or dy <= 0:
+        raise ValueError("dx and dy must be > 0 meters.")
     dTdt = (T_curr - T_prev) / dt_s
     grad_mag, _, _ = temperature_gradient_field(T_curr, dx, dy)
     return np.abs(dTdt) / np.clip(grad_mag, eps, None)
@@ -126,6 +132,10 @@ def compute_heave_rate_field(T_curr: np.ndarray, T_prev: np.ndarray, dt_s: float
 
     Returns (h_dot_field, fringe_mask, grad_mag_field, front_velocity_field, SP_effective).
     """
+    if dt_s <= 0:
+        raise ValueError("dt_s must be > 0 seconds.")
+    if dx <= 0 or dy <= 0:
+        raise ValueError("dx and dy must be > 0 meters.")
     fringe = identify_freezing_fringe(T_curr, p.fringe_t_upper_c, p.fringe_t_lower_c)
     grad_mag, _, _ = temperature_gradient_field(T_curr, dx, dy)
     v_front = phase_front_velocity_field(T_curr, T_prev, dt_s, dx, dy)

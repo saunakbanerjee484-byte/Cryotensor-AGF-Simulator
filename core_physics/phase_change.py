@@ -84,11 +84,19 @@ class ThermalParams:
     picard_iters: int = 4           # nonlinear sub-iterations per timestep
 
     def grid_spacing(self):
+        if self.nx < 2 or self.ny < 2:
+            raise ValueError("nx and ny must be >= 2 to form a spatial grid.")
+        if self.Lx <= 0 or self.Ly <= 0:
+            raise ValueError("Lx and Ly must be > 0.")
         dx = self.Lx / (self.nx - 1)
         dy = self.Ly / (self.ny - 1)
         return dx, dy
 
     def n_steps(self) -> int:
+        if self.dt <= 0:
+            raise ValueError("dt must be > 0 seconds.")
+        if self.total_time < 0:
+            raise ValueError("total_time must be >= 0 seconds.")
         return max(1, int(round(self.total_time / self.dt)))
 
     def effective_latent(self) -> float:
@@ -101,6 +109,8 @@ class ThermalParams:
 # ----------------------------------------------------------------------------
 def liquid_fraction(T: np.ndarray, T_freeze: float, delta_T: float) -> np.ndarray:
     """Smoothed unfrozen (liquid) water fraction f_l(T), vectorized. Values in [0, 1]."""
+    if delta_T <= 0:
+        raise ValueError("delta_T_phase must be > 0 for AHCM smoothing.")
     lo = T_freeze - delta_T / 2.0
     hi = T_freeze + delta_T / 2.0
     fl = (T - lo) / (hi - lo)
@@ -109,10 +119,12 @@ def liquid_fraction(T: np.ndarray, T_freeze: float, delta_T: float) -> np.ndarra
 
 def dliquid_fraction_dT(T: np.ndarray, T_freeze: float, delta_T: float) -> np.ndarray:
     """d(f_l)/dT, vectorized. Nonzero only inside the phase-change band."""
+    if delta_T <= 0:
+        raise ValueError("delta_T_phase must be > 0 for AHCM smoothing.")
     lo = T_freeze - delta_T / 2.0
     hi = T_freeze + delta_T / 2.0
     inside = (T >= lo) & (T <= hi)
-    return np.where(inside, 1.0 / (hi - lo), 0.0)
+    return np.where(inside, 1.0 / delta_T, 0.0)
 
 
 def apparent_heat_capacity(T: np.ndarray, p: ThermalParams) -> np.ndarray:
@@ -201,6 +213,13 @@ def run_stefan_simulation(p: ThermalParams, record_every: int = 1):
         frozen_fraction        : list of domain fraction with T <= T_freeze
         params                 : the ThermalParams used
     """
+    if p.delta_T_phase <= 0:
+        raise ValueError("delta_T_phase must be > 0.")
+    if p.rho <= 0 or p.latent_heat < 0 or p.water_content < 0:
+        raise ValueError("rho must be > 0; latent_heat and water_content must be >= 0.")
+    if p.k_unfrozen <= 0 or p.k_frozen <= 0 or p.c_unfrozen <= 0 or p.c_frozen <= 0:
+        raise ValueError("Thermal conductivities and specific heats must be > 0.")
+
     dx, dy = p.grid_spacing()
     N = p.nx * p.ny
     L = build_2d_laplacian(p.nx, p.ny, dx, dy)
@@ -214,7 +233,7 @@ def run_stefan_simulation(p: ThermalParams, record_every: int = 1):
 
     dt = p.dt
     n_steps = p.n_steps()
-    record_every = max(1, record_every)
+    record_every = max(1, int(record_every))
 
     t_list = [0.0]
     T_history = [T.reshape(p.ny, p.nx).copy()]

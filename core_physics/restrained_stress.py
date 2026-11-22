@@ -124,7 +124,10 @@ SOLUTE_REJECTION_GAIN_PPT = 15.0  # [ppt] max additional salinity from full solu
 # =====================================================================================
 def soil_plane_strain_modulus(E: float, nu: float) -> float:
     """K = E / [(1+nu)(1-2nu)] [Pa]."""
-    return E / ((1.0 + nu) * (1.0 - 2.0 * nu))
+    denom = (1.0 + nu) * (1.0 - 2.0 * nu)
+    if denom <= 0:
+        raise ValueError("poisson ratio must satisfy -1 < nu < 0.5 for plane strain.")
+    return E / denom
 
 
 def baseline_restraint_factor(p: StressParams) -> float:
@@ -147,7 +150,10 @@ def restraint_factor_field(x: np.ndarray, y: np.ndarray, p: StressParams,
 
 def _plane_strain_D_unit(nu: float) -> np.ndarray:
     """3x3 plane-strain constitutive matrix with E factored OUT."""
-    c = 1.0 / ((1.0 + nu) * (1.0 - 2.0 * nu))
+    denom = (1.0 + nu) * (1.0 - 2.0 * nu)
+    if denom <= 0:
+        raise ValueError("poisson_ratio_frozen must satisfy -1 < nu < 0.5 for plane strain.")
+    c = 1.0 / denom
     return c * np.array([
         [1.0 - nu, nu, 0.0],
         [nu, 1.0 - nu, 0.0],
@@ -295,6 +301,10 @@ def damage_field_mechanical(eps_v_field: np.ndarray) -> np.ndarray:
 
 def build_sparse_dx_operator(n: int, dx: float) -> sp.csr_matrix:
     """Central-difference first-derivative operator [1/m], one-sided at the edges."""
+    if n < 2:
+        raise ValueError("n must be >= 2.")
+    if dx <= 0:
+        raise ValueError("dx must be > 0.")
     main = np.zeros(n)
     lower = -0.5 * np.ones(n - 1) / dx
     upper = 0.5 * np.ones(n - 1) / dx
